@@ -1,3 +1,4 @@
+# main.py
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -8,7 +9,7 @@ import os
 from datetime import datetime, timedelta
 import random
 
-TOKEN = "MTU0MzM0ODQ5Mzk0OTg3MDEyMA.Gcyp4d.i37Y277-TpTLEx9QuKjvMioFhkkRK-G9zkzFSg"
+TOKEN = "MTU0MzM0ODQ5Mzk0OTg3MDEyMA.GpxKdY.VJNGfLpG-KXais7DWXYO2pcC5mWaxH5T1kpi4w"
 OWNER_ID = 1531322045638508736
 LOG_CHANNEL_ID = 1543646909686878259
 
@@ -59,7 +60,12 @@ async def log_to_channel(title, description):
     channel = bot.get_channel(LOG_CHANNEL_ID)
     if channel is None:
         return
-    embed = discord.Embed(title=title, description=description[:4000], color=0x2b2d31, timestamp=datetime.utcnow())
+    embed = discord.Embed(
+        title=title,
+        description=description[:4000],
+        color=0x2b2d31,
+        timestamp=datetime.utcnow()
+    )
     embed.set_footer(text="Protect Bot")
     await channel.send(embed=embed)
 
@@ -70,15 +76,20 @@ async def on_member_join(member):
     settings = load_settings()
     if not settings["anti_raid"]:
         return
+    
     now = time.time()
+    
     for user_id, times in list(join_times.items()):
         join_times[user_id] = [t for t in times if now - t < 300]
         if not join_times[user_id]:
             del join_times[user_id]
+    
     if member.id not in join_times:
         join_times[member.id] = []
     join_times[member.id].append(now)
+    
     recent_joins = len(join_times.get(member.id, []))
+    
     if recent_joins > settings["max_joins"]:
         try:
             await member.ban(reason=f"Anti-raid: {recent_joins} joines")
@@ -86,6 +97,7 @@ async def on_member_join(member):
         except:
             pass
         return
+    
     if settings["auto_verify"]:
         verified = load_verified()
         if member.id not in verified:
@@ -98,6 +110,7 @@ async def on_member_join(member):
                 except:
                     pass
             await log_to_channel("Auto-verify", f"{member.mention} ({member.id}) auto-verifie")
+    
     if settings["captcha"]:
         await send_captcha(member)
 
@@ -107,7 +120,13 @@ async def send_captcha(member):
     num1 = random.randint(1, 10)
     num2 = random.randint(1, 10)
     result = num1 + num2
-    embed = discord.Embed(title="Verification", description=f"Bienvenue {member.mention}!\n\nReponds a cette question :\n**{num1} + {num2} = ?**\n\nTu as 60 secondes.", color=0x2b2d31)
+    
+    embed = discord.Embed(
+        title="Verification",
+        description=f"Bienvenue {member.mention}!\n\nReponds a cette question :\n**{num1} + {num2} = ?**\n\nTu as 60 secondes.",
+        color=0x2b2d31
+    )
+    
     try:
         await member.send(embed=embed)
         captcha_cache[member.id] = {"result": result, "time": time.time()}
@@ -118,12 +137,14 @@ async def send_captcha(member):
 async def on_message(message):
     if message.author.bot:
         return
+    
     if message.author.id in captcha_cache:
         data = captcha_cache[message.author.id]
         if time.time() - data["time"] > 60:
             del captcha_cache[message.author.id]
             await message.channel.send(f"{message.author.mention} Temps ecoule. Tape /verify pour reessayer.")
             return
+        
         if message.content.isdigit() and int(message.content) == data["result"]:
             del captcha_cache[message.author.id]
             verified = load_verified()
@@ -137,43 +158,8 @@ async def on_message(message):
                 await log_to_channel("Captcha", f"{message.author.mention} ({message.author.id}) a passe le captcha")
         else:
             await message.channel.send(f"{message.author.mention} Mauvaise reponse. Reessaie ou tape /verify.")
+    
     await bot.process_commands(message)
-
-BANNED_WORDS = [
-    "discord.gg", "discord.com/invite", "dsc.gg", "invite", "rejoins", "rejoindre", "vient", "viens", "serveur", "serv",
-    "gg/", "join", "joinus", "rejoignez", "dox", "doxx", "doxxer", "doxer", "doxing", "doxxing",
-    "publier", "fuite", "leak", "leaks", "leaker", "fuiter", "dossier", "infos", "renseignements",
-    "personnelles", "adresse", "telephone", "numero", "mail", "email", "identite", "identifiants", "mdp", "password"
-]
-
-async def check_message(message):
-    if message.author.bot:
-        return True
-    if message.author.guild_permissions.administrator:
-        return True
-    content_lower = message.content.lower()
-    for word in BANNED_WORDS:
-        if word in content_lower:
-            try:
-                await message.delete()
-                await message.author.timeout(timedelta(minutes=10), reason="Message interdit")
-                await message.channel.send(f"{message.author.mention} Message supprime - contenu interdit.")
-                await log_to_channel("Filter", f"{message.author.mention} ({message.author.id}) a envoyé un message interdit\nContenu: {message.content[:200]}")
-                return False
-            except:
-                pass
-            return False
-    if "discord.gg/" in content_lower or "discord.com/invite/" in content_lower or "dsc.gg/" in content_lower:
-        try:
-            await message.delete()
-            await message.author.timeout(timedelta(minutes=10), reason="Invitation Discord")
-            await message.channel.send(f"{message.author.mention} Pas d'invitations Discord.")
-            await log_to_channel("Filter", f"{message.author.mention} ({message.author.id}) a envoyé une invitation\nContenu: {message.content[:200]}")
-            return False
-        except:
-            pass
-        return False
-    return True
 
 @bot.event
 async def on_ready():
@@ -215,12 +201,14 @@ async def warn_cmd(interaction: discord.Interaction, membre: discord.Member, rai
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
         return
+    
     warnings = load_warnings()
     user_id = str(membre.id)
     if user_id not in warnings:
         warnings[user_id] = []
     warnings[user_id].append({"raison": raison, "date": datetime.utcnow().isoformat(), "admin": interaction.user.name})
     save_warnings(warnings)
+    
     total = len(warnings[user_id])
     await interaction.response.send_message(f"{membre.mention} averti ({total} avertissements)")
     await log_to_channel("Warn", f"{membre.mention} ({membre.id}) averti par {interaction.user.mention}\nRaison: {raison}\nTotal: {total}")
@@ -231,11 +219,13 @@ async def warnings_cmd(interaction: discord.Interaction, membre: discord.Member)
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
         return
+    
     warnings = load_warnings()
     user_warnings = warnings.get(str(membre.id), [])
     if not user_warnings:
         await interaction.response.send_message(f"{membre.mention} n'a aucun avertissement.", ephemeral=True)
         return
+    
     embed = discord.Embed(title=f"Avertissements de {membre.name}", color=0x2b2d31)
     for i, w in enumerate(user_warnings[-10:], 1):
         embed.add_field(name=f"#{i}", value=f"Raison: {w['raison']}\nDate: {w['date'][:16]}\nAdmin: {w['admin']}", inline=False)
@@ -248,6 +238,7 @@ async def clear_warnings_cmd(interaction: discord.Interaction, membre: discord.M
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
         return
+    
     warnings = load_warnings()
     if str(membre.id) in warnings:
         del warnings[str(membre.id)]
@@ -258,11 +249,19 @@ async def clear_warnings_cmd(interaction: discord.Interaction, membre: discord.M
         await interaction.response.send_message(f"{membre.mention} n'a aucun avertissement.", ephemeral=True)
 
 @bot.tree.command(name="settings", description="[ADMIN] Configurer les protections")
-@app_commands.describe(auto_verify="Auto-verifier (true/false)", anti_raid="Anti-raid (true/false)", max_joins="Max de joines avant ban", time_window="Fenetre en secondes", captcha="Captcha (true/false)")
-async def settings_cmd(interaction: discord.Interaction, auto_verify: str = None, anti_raid: str = None, max_joins: int = None, time_window: int = None, captcha: str = None):
+@app_commands.describe(
+    auto_verify="Auto-verifier (true/false)",
+    anti_raid="Anti-raid (true/false)",
+    max_joins="Max de joines avant ban",
+    time_window="Fenetre en secondes",
+    captcha="Captcha (true/false)"
+)
+async def settings_cmd(interaction: discord.Interaction, auto_verify: str = None, anti_raid: str = None,
+                       max_joins: int = None, time_window: int = None, captcha: str = None):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
         return
+    
     settings = load_settings()
     if auto_verify is not None:
         settings["auto_verify"] = auto_verify.lower() == "true"
@@ -275,6 +274,7 @@ async def settings_cmd(interaction: discord.Interaction, auto_verify: str = None
     if captcha is not None:
         settings["captcha"] = captcha.lower() == "true"
     save_settings(settings)
+    
     embed = discord.Embed(title="Configuration", color=0x2b2d31)
     embed.add_field(name="Auto-verify", value="Oui" if settings["auto_verify"] else "Non", inline=True)
     embed.add_field(name="Anti-raid", value="Oui" if settings["anti_raid"] else "Non", inline=True)
@@ -289,9 +289,11 @@ async def stats_cmd(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
         return
+    
     guild = interaction.guild
     verified = load_verified()
     warnings = load_warnings()
+    
     embed = discord.Embed(title=f"Statistiques - {guild.name}", color=0x2b2d31)
     embed.add_field(name="Membres", value=f"{guild.member_count}", inline=True)
     embed.add_field(name="Bots", value=f"{len([m for m in guild.members if m.bot])}", inline=True)
@@ -334,9 +336,11 @@ async def info_cmd(interaction: discord.Interaction, membre: discord.Member):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
         return
+    
     warnings = load_warnings()
     user_warnings = warnings.get(str(membre.id), [])
     verified = load_verified()
+    
     embed = discord.Embed(title=f"Informations - {membre.name}", color=0x2b2d31)
     embed.set_thumbnail(url=membre.display_avatar.url)
     embed.add_field(name="ID", value=membre.id, inline=True)
@@ -353,13 +357,16 @@ async def massban_cmd(interaction: discord.Interaction, ids: str, raison: str = 
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
         return
+    
     user_ids = [id.strip() for id in ids.split(",") if id.strip().isdigit()]
     if not user_ids:
         await interaction.response.send_message("IDs invalides.", ephemeral=True)
         return
+    
     await interaction.response.defer(ephemeral=False)
     success = 0
     failed = 0
+    
     for user_id in user_ids:
         try:
             user = await bot.fetch_user(int(user_id))
@@ -367,6 +374,7 @@ async def massban_cmd(interaction: discord.Interaction, ids: str, raison: str = 
             success += 1
         except:
             failed += 1
+    
     await interaction.followup.send(f"{success} utilisateurs bannis, {failed} echoues.")
     await log_to_channel("Mass Ban", f"{success} utilisateurs bannis par {interaction.user.mention}\nRaison: {raison}")
 
@@ -376,49 +384,14 @@ async def lockdown_cmd(interaction: discord.Interaction, channel: discord.TextCh
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
         return
+    
     overwrite = channel.overwrites_for(interaction.guild.default_role)
     overwrite.send_messages = False if lock else None
     await channel.set_permissions(interaction.guild.default_role, overwrite=overwrite)
+    
     status = "verrouille" if lock else "deverrouille"
     await interaction.response.send_message(f"Salon {channel.mention} {status}.")
     await log_to_channel("Lockdown", f"Salon {channel.name} {status} par {interaction.user.mention}")
-
-@bot.tree.command(name="filter_add", description="[ADMIN] Ajouter un mot au filtre")
-@app_commands.describe(word="Mot à bloquer")
-async def filter_add(interaction: discord.Interaction, word: str):
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("Admin uniquement.", ephemeral=True)
-        return
-    global BANNED_WORDS
-    if word.lower() not in BANNED_WORDS:
-        BANNED_WORDS.append(word.lower())
-        await interaction.response.send_message(f"Mot '{word}' ajoute au filtre.", ephemeral=True)
-        await log_to_channel("Filter Add", f"{interaction.user.mention} a ajoute '{word}' au filtre")
-    else:
-        await interaction.response.send_message(f"'{word}' est deja dans le filtre.", ephemeral=True)
-
-@bot.tree.command(name="filter_remove", description="[ADMIN] Enlever un mot du filtre")
-@app_commands.describe(word="Mot à enlever")
-async def filter_remove(interaction: discord.Interaction, word: str):
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("Admin uniquement.", ephemeral=True)
-        return
-    global BANNED_WORDS
-    if word.lower() in BANNED_WORDS:
-        BANNED_WORDS.remove(word.lower())
-        await interaction.response.send_message(f"Mot '{word}' enleve du filtre.", ephemeral=True)
-        await log_to_channel("Filter Remove", f"{interaction.user.mention} a enleve '{word}' du filtre")
-    else:
-        await interaction.response.send_message(f"'{word}' n'est pas dans le filtre.", ephemeral=True)
-
-@bot.tree.command(name="filter_list", description="[ADMIN] Voir les mots filtres")
-async def filter_list(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("Admin uniquement.", ephemeral=True)
-        return
-    embed = discord.Embed(title="Mots filtres", description=", ".join(BANNED_WORDS[:50]), color=0x2b2d31)
-    embed.set_footer(text=f"Total: {len(BANNED_WORDS)} mots")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 if __name__ == "__main__":
     bot.run(TOKEN)
