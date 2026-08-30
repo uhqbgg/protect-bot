@@ -158,7 +158,7 @@ async def check_message(message):
                 await message.delete()
                 await message.author.timeout(timedelta(minutes=10), reason="Message interdit")
                 await message.channel.send(f"{message.author.mention} Message supprime - contenu interdit.")
-                await log_to_channel("Filter", f"{message.author.mention} ({message.author.id}) a envoyé un message interdit\nContenu: {message.content[:200]}")
+                await log_to_channel("Filter", f"{message.author.mention} ({message.author.id}) a envoyÃ© un message interdit\nContenu: {message.content[:200]}")
                 return False
             except:
                 pass
@@ -168,7 +168,7 @@ async def check_message(message):
             await message.delete()
             await message.author.timeout(timedelta(minutes=10), reason="Invitation Discord")
             await message.channel.send(f"{message.author.mention} Pas d'invitations Discord.")
-            await log_to_channel("Filter", f"{message.author.mention} ({message.author.id}) a envoyé une invitation\nContenu: {message.content[:200]}")
+            await log_to_channel("Filter", f"{message.author.mention} ({message.author.id}) a envoyÃ© une invitation\nContenu: {message.content[:200]}")
             return False
         except:
             pass
@@ -384,7 +384,7 @@ async def lockdown_cmd(interaction: discord.Interaction, channel: discord.TextCh
     await log_to_channel("Lockdown", f"Salon {channel.name} {status} par {interaction.user.mention}")
 
 @bot.tree.command(name="filter_add", description="[ADMIN] Ajouter un mot au filtre")
-@app_commands.describe(word="Mot à bloquer")
+@app_commands.describe(word="Mot Ã  bloquer")
 async def filter_add(interaction: discord.Interaction, word: str):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
@@ -398,7 +398,7 @@ async def filter_add(interaction: discord.Interaction, word: str):
         await interaction.response.send_message(f"'{word}' est deja dans le filtre.", ephemeral=True)
 
 @bot.tree.command(name="filter_remove", description="[ADMIN] Enlever un mot du filtre")
-@app_commands.describe(word="Mot à enlever")
+@app_commands.describe(word="Mot Ã  enlever")
 async def filter_remove(interaction: discord.Interaction, word: str):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Admin uniquement.", ephemeral=True)
