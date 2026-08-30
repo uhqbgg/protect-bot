@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timedelta
 import random
 
-TOKEN = "MTU0MzM0ODQ5Mzk0OTg3MDEyMA.GpxKdY.VJNGfLpG-KXais7DWXYO2pcC5mWaxH5T1kpi4w"
+TOKEN = "MTU0MzM0ODQ5Mzk0OTg3MDEyMA.Gcyp4d.i37Y277-TpTLEx9QuKjvMioFhkkRK-G9zkzFSg"
 OWNER_ID = 1531322045638508736
 LOG_CHANNEL_ID = 1543646909686878259
 
